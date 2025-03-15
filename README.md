@@ -5,7 +5,7 @@ ULTIMATE supports the formal representation, verification and synthesis of multi
 Through its unique integration of multiple probabilistic and parametric model checking paradigms, and underpinned by a novel verification method for handling model interdependencies, ULTIMATE unifies the modelling of probabilistic and nondeterministic uncertainty, discrete and continuous time, partial observability, and the use of both Bayesian and frequentist inference to exploit domain knowledge and data about the modelled system and its context. 
 
 
-## - Installation
+## Installation
 
 ### Prerequisites
 
