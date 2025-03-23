@@ -31,7 +31,7 @@ public class Project {
 
 	private Set<Model> models; // set of models in the project
     private ObservableList<Model> observableModels;    // The observable list used for UI binding
-    private ObjectProperty<Model> currentModel; // Observable property for current model
+    private ObjectProperty<Model> currentModel; // Observable property of current model
 	private String projectName;
 	private ProjectImporter importer;
 	private ProjectExporter exporter;
@@ -39,6 +39,7 @@ public class Project {
 	private String stormParsInstall = null;
 	private String prismInstall = null;
 	private String prismGamesInstall = null;
+	private String pythonInstall = null;
 	private ObjectProperty<String> chosenPMC;
 	private String saveLocation = null; // set when a project has been saved as, used for subsequent saves
 	private String directory = null;
@@ -219,6 +220,10 @@ public class Project {
 	public String getPrismGamesInstall() {
 		return this.prismGamesInstall;
 	}
+	
+	public String getPythonInstall() {
+		return this.pythonInstall;
+	}
     
 	private void setupConfigs() throws IOException {
         File configFile = new File("config.json");
@@ -258,16 +263,29 @@ public class Project {
         	}
         }
         
-        //String prismGamesInstall = configJSON.getString("prismGamesInstall");
-        //if (FileUtils.isFile(prismGamesInstall) && !prismGamesInstall.equals("")) {
-        	//this.prismGamesInstall = prismGamesInstall;
-        //}
-        //else {
-        	//if (sharedContext.getMainStage() != null) {
-            	//Alerter.showWarningAlert("No PRISM games Installation found!", "Please configure the location of the PRISM Games install on your system!");
-            	//configured = false;
-        	//}
-        //}
+        String prismGamesInstall = configJSON.getString("prismGamesInstall");
+        if (FileUtils.isFile(prismGamesInstall) && !prismGamesInstall.equals("")) {
+        	this.prismGamesInstall = prismGamesInstall;
+        }
+        else {
+        	if (sharedContext.getMainStage() != null) {
+            	Alerter.showWarningAlert("No PRISM games Installation found!", "Please configure the location of the PRISM Games install on your system!");
+            	configured = false;
+        	}
+        }
+        
+        
+        String pythonInstall = configJSON.getString("pythonInstall");
+        if (FileUtils.isFile(pythonInstall) && !pythonInstall.equals("")) {
+        	this.pythonInstall = pythonInstall;
+        }
+        else {
+        	if (sharedContext.getMainStage() != null) {
+            	Alerter.showWarningAlert("No python Installation found!", "Please configure the location of the python install on your system!");
+            	configured = false;
+        	}
+        }
+        
 	}
 	
 	/*

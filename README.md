@@ -19,6 +19,10 @@ Through its unique integration of multiple probabilistic and parametric model ch
 
 [PRISM model checker](https://www.prismmodelchecker.org/)
 
+[PRISM Games model checker](https://www.prismmodelchecker.org/games/download.php)
+
+[python](https://www.python.org/downloads/)
+
 The lastest version of the JavaFX SDK should be downloaded as well as Java 22 or later as the SDK requires this. 
 Download and build storm and prism according to their respective installation guides.
 
@@ -28,12 +32,12 @@ Firstly, clone the repo in a convenient location. Navigate to the folder 'ULTIMA
 This file stores the installation locations of storm and prism. These will need to be set for the tool to access them during verification. The file looks like this:
 
 ```json
-{"stormInstall":"","stormParsInstall":"","prismInstall":""}
+{"stormInstall":"","stormParsInstall":"","prismInstall":"","prismGamesInstall":"","pythonInstall":""}
 ```
 The full path to each executable for storm, storm-pars and prism will need to be set or the tool will report and error and close. For example:
 
 ```json
-{"stormInstall":"/Users/user/Desktop/storm","stormParsInstall":"/Users/user/Desktop/storm-pars","prismInstall":"/Users/user/Desktop/prism"}
+{"stormInstall":"/Users/user/Desktop/storm","stormParsInstall":"/Users/user/Desktop/storm-pars","prismInstall":"/Users/user/Desktop/prism","prismGamesInstall":"/Users/user/Desktop/prismg","pythonInstall":"/opt/homebrew/bin/python3"}
 ```
 
 Still within the folder 'ULTIMATE_MODEL_MANAGER', the simplest way to run the tool is to use the maven integration in the project. Run the following commands:

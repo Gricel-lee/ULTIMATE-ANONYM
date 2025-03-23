@@ -187,7 +187,7 @@ class ULTIMATE_Dependency:
         values_str = values_str[:-1]
 
         # run PRISM
-        result = subprocess.run([self.__path, self.__source_model, "-pf", self.__property_str, "-const", values_str ], capture_output=True, text=True)
+        result = subprocess.run([self.__path, self.__source_model, "-pf", self.__property_str, "-const", values_str], capture_output=True, text=True)
 
         # parse output
         v = self.parsePMCResult(result)
@@ -206,7 +206,7 @@ class ULTIMATE_Dependency:
         if Prism:
             match = re.search(r'Result: (\d+\.\d+)', output)  # Extract floating-point result
         else:
-            match = re.search(r"Result \(for initial states\): ([+-]?\d*\.\d+)", output)
+            match = re.search(r"Result \(for initial states\): ([+-]?\d*[\.\d+]*)", output)
         if match:
             res = float(match.group(1))
         else:#if there is an issue with the verification - give back a very wrong/bad value
@@ -238,7 +238,7 @@ class ULTIMATE_Dependency:
         values_str = values_str[:-1]
 
         # run Storm
-        result = subprocess.run([self.__path, "--prism", self.__source_model, "--prop", self.__property_str, "--constants", values_str ], capture_output=True, text=True)
+        result = subprocess.run([self.__path, "--prism", self.__source_model, "--prop", self.__property_str, "--constants", values_str, "-pc"], capture_output=True, text=True)
 
         # parse output
         v = self.parsePMCResult(result, Prism=False)
@@ -300,12 +300,16 @@ class PMC(Enum):
 if __name__ == "__main__":
     #parse command line arguments
     args = parse_arguments()
-    if args['mc'][0].lower() ==  PMC.Prism.name.lower():
-        pmc = PMC.Prism
-    else:
-        pmc = PMC.Storm
-    path        = args['path'][0]
-    input       = args['input']
+    try:
+        if args['mc'][0].lower() ==  PMC.Prism.name.lower():
+            pmc = PMC.Prism
+        else:
+            pmc = PMC.Storm
+    except :
+         pmc = PMC.Storm
+    path = args['path'][0]
+    inputs = args['input']
+    #print(f"FROM PYTHON:\nThe path: {path}\nThe PMC: {pmc}\nThe inputs: {inputs}")
     model_order = (args['model'])
     solver_type = ULTIMATE_Solver_Enum.Numerical
 
@@ -315,9 +319,10 @@ if __name__ == "__main__":
     # FOR TESTING
     # path = "<path_to_prism>"
     # pmc = PMC.Prism
-    # path = "storm"
-    # pmc = PMC.Storm
+    #path = "storm"
+    #pmc = PMC.Storm
     # 
+    #model_order = ("select_perception_model.dtmc", "")
     # 
     # # Normal MC
     # input = [
@@ -326,27 +331,27 @@ if __name__ == "__main__":
     #     "perceive-user2.dtmc, select_perception_model.dtmc, P=?[F s=1], pModel1",
     #     "perceive-user2.dtmc, select_perception_model.dtmc, P=?[F s=2], pModel2" 
     # ]
-    # model_order = ("select_perception_model.dtmc", "")
-    #Normal MC SMD
-    # input = [
-    #     "ULTIMATE_MODEL_MANAGER/ULTIMATE_Numerical_Solver/SmartLighting.prism, ULTIMATE_MODEL_MANAGER/ULTIMATE_Numerical_Solver/MotionSensor.prism, P=?[F (step=2 & detected)], pDetected", 
-    #     "ULTIMATE_MODEL_MANAGER/ULTIMATE_Numerical_Solver/MotionSensor.prism, ULTIMATE_MODEL_MANAGER/ULTIMATE_Numerical_Solver/SmartLighting.prism, R{\"low\"}=? [C<=10000], pLow", 
-    #     "ULTIMATE_MODEL_MANAGER/ULTIMATE_Numerical_Solver/MotionSensor.prism, ULTIMATE_MODEL_MANAGER/ULTIMATE_Numerical_Solver/SmartLighting.prism, R{\"medium\"}=? [C<=10000], pMed" 
-    # ]
-    # model_order = ("ULTIMATE_MODEL_MANAGER/ULTIMATE_Numerical_Solver/SmartLighting.prism", "")
     # solver_type = ULTIMATE_Solver_Enum.Numerical
     # 
-    #Parametric MC (note: set ULTIMATE_Solver_Enum.Parametric)
+    #Normal MC FX-DPM
     # input = [
-        # "select_perception_model.dtmc, perceive-user2.dtmc, (4*pModel2+(-111)*pModel1+461)/(1000), pOkCorrect",
-        # "select_perception_model.dtmc, perceive-user2.dtmc, (-1 * (79*pModel2+2079*pModel1+(-9279)))/(20000), pNotOkCorrect",
-        # "perceive-user2.dtmc, select_perception_model.dtmc, (-953 * (pNotOkCorrect))/(1000 * (pOkCorrect+(-1)*pNotOkCorrect+(-1))), pModel1",
-        # "perceive-user2.dtmc, select_perception_model.dtmc, (2500*pOkCorrect+1669*pNotOkCorrect+(-2500))/(2500 * (pOkCorrect+(-1)*pNotOkCorrect+(-1))), pModel2"
+    #     "ULTIMATE_MODEL_MANAGER/ULTIMATE_Numerical_Solver/DPM-FX/DPM.ctmc, ULTIMATE_MODEL_MANAGER/ULTIMATE_Numerical_Solver/DPM-FX/FX.dtmc, R{\"disk_operations\"}=?[F \"done\"], disk_ops", 
+    #     "ULTIMATE_MODEL_MANAGER/ULTIMATE_Numerical_Solver/DPM-FX/FX.dtmc, ULTIMATE_MODEL_MANAGER/ULTIMATE_Numerical_Solver/DPM-FX/DPM.ctmc, R{\"queue_size\"}=? [S], avr_num_disk_ops_remain_in_queue" 
     # ]
-    # solver_type = ULTIMATE_Solver_Enum.Parametric
+    # model_order = ("ULTIMATE_MODEL_MANAGER/ULTIMATE_Numerical_Solver/DPM-FX/FX.dtmc", "")
+    # solver_type = ULTIMATE_Solver_Enum.Numerical
+
+    #Parametric MC (note: set ULTIMATE_Solver_Enum.Parametric)
+    #input = [
+        #"select_perception_model.dtmc, perceive-user2.dtmc, (4*pModel2+(-111)*pModel1+461)/(1000), pOkCorrect",
+        #"select_perception_model.dtmc, perceive-user2.dtmc, (-1 * (79*pModel2+2079*pModel1+(-9279)))/(20000), pNotOkCorrect",
+        #"perceive-user2.dtmc, select_perception_model.dtmc, (-953 * (pNotOkCorrect))/(1000 * (pOkCorrect+(-1)*pNotOkCorrect+(-1))), pModel1",
+        #"perceive-user2.dtmc, select_perception_model.dtmc, (2500*pOkCorrect+1669*pNotOkCorrect+(-2500))/(2500 * (pOkCorrect+(-1)*pNotOkCorrect+(-1))), pModel2"
+    #]
+    #solver_type = ULTIMATE_Solver_Enum.Parametric
     #TESTING END
 
-    for i in input:
+    for i in inputs:
         dep = []
         v = i.split(",")
         dep.append(v[0].strip()) #dependent model
@@ -372,22 +377,3 @@ if __name__ == "__main__":
     # Print the optimal values for the parameters and the minimum value of the objective function
     print("Optimal parameters:", result)
     print("Minimum objective value:", loss)
-
-
-
-## RUN COMMAND EXAMPLES##
-
-#RAD - Storm invocation
-#  python3 ULTIMATE_numerical_solver.py \
-#  --path "storm" \
-#  --mc "Storm" \
-#  --model "select_perception_model.dtmc" \
-#  --input "select_perception_model.dtmc, perceive-user2.dtmc, P=? [F (\"done\" & (userOk & userPredictedOk))], pOkCorrect" "select_perception_model.dtmc, perceive-user2.dtmc, P=? [F (\"done\" & (!(userOk) & !(userPredictedOk)))], pNotOkCorrect" "perceive-user2.dtmc, select_perception_model.dtmc, P=?[F s=1], pModel1" "perceive-user2.dtmc, select_perception_model.dtmc, P=?[F s=2], pModel2"
-
-# RAD - Prism invocation
-#  python3 ULTIMATE_numerical_solver.py \
-#  --path "<path_to_prism>" \
-#  --mc "Prism" \
-#  --model "select_perception_model.dtmc" \
-#  --input "select_perception_model.dtmc, perceive-user2.dtmc, P=? [F (\"done\" & (userOk & userPredictedOk))], pOkCorrect" "select_perception_model.dtmc, perceive-user2.dtmc, P=? [F (\"done\" & (!(userOk) & !(userPredictedOk)))], pNotOkCorrect" "perceive-user2.dtmc, select_perception_model.dtmc, P=?[F s=1], pModel1" "perceive-user2.dtmc, select_perception_model.dtmc, P=?[F s=2], pModel2"
- 

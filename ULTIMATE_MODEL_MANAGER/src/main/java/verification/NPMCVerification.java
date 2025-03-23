@@ -6,8 +6,8 @@ import utils.FileUtils;
 
 import org.mariuszgromada.math.mxparser.Argument;
 import org.mariuszgromada.math.mxparser.Expression;
-import org.mariuszgromada.math.mxparser.License;
-import org.mariuszgromada.math.mxparser.mXparser;
+//import org.mariuszgromada.math.mxparser.License;
+//import org.mariuszgromada.math.mxparser.mXparser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +15,7 @@ import model.Model;
 import parameters.DependencyParameter;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 import java.io.IOException;
@@ -70,11 +71,9 @@ public class NPMCVerification {
     private ArrayList<Model> originalModels;
     private boolean usePythonSolver = false;
     private String pythonSolverPath = "ULTIMATE_Numerical_Solver/ULTIMATE_numerical_solver.py";
-    private String modelsBasePath = "";
-    
     public NPMCVerification(ArrayList<Model> models) {
-        License.iConfirmNonCommercialUse("ultimate,");  // Add this line to confirm license for math lib
-        mXparser.consolePrintln(false);  // Disable mXparser console output of math lib
+        //License.iConfirmNonCommercialUse("ultimate,");  // Add this line to confirm license for math lib
+        //mXparser.consolePrintln(false);  // Disable mXparser console output of math lib
         this.originalModels = models;
         this.modelMap = new HashMap<>();
         initializeFromModels(models);
@@ -85,41 +84,8 @@ public class NPMCVerification {
     }
     
     public void setModelsBasePath(String path) {
-        this.modelsBasePath = path;
     }
     
-    /**
-     * Determines the file extension for a model (.dtmc, .ctmc, etc.)
-     * @param model The model to check
-     * @return The file extension including the dot
-     */
-    private String determineModelExtension(Model model) {
-        if (model == null) {
-            return ".dtmc"; // Default to DTMC if model not found
-        }
-        
-        // Try to infer model type from the file path
-        String filePath = model.getFilePath();
-        if (filePath != null && !filePath.isEmpty()) {
-            // Extract extension from file path if it exists
-            if (filePath.endsWith(".dtmc")) {
-                return ".dtmc";
-            } else if (filePath.endsWith(".ctmc")) {
-                return ".ctmc";
-            } else if (filePath.endsWith(".mdp")) {
-                return ".mdp";
-            } else if (filePath.endsWith(".prism")) {
-                return ".prism";
-            }
-            
-            // If the file path doesn't have a recognizable extension,
-            // we can try to look for keywords in the file content or property files
-            // For now, we'll default to .dtmc
-        }
-        
-        return ".dtmc"; // Default to DTMC for most models
-    }
-
     private void initializeFromModels(ArrayList<Model> models) {
         logger.info("Initializing verification from models...");
         
@@ -282,14 +248,18 @@ public class NPMCVerification {
             
             // Build command for Python solver
             List<String> command = new ArrayList<>();
-            command.add("/Library/Frameworks/Python.framework/Versions/3.11/bin/python3");
+            String pythonPath = project.getPythonInstall();
+            command.add(pythonPath);
             command.add(pythonSolverPath);
-            command.add("--pmc");
+            command.add("--path");
             command.add(pmcPath);
             command.add("--model");
             command.add(modelFilePath);
             command.add("--input");
             command.addAll(inputData);
+            //command.add(" -pc");
+            
+            System.out.println(command);
             
             logger.info("Executing Python solver with command: ");
             for (String cmd : command) {
@@ -370,13 +340,13 @@ public class NPMCVerification {
             throw new RuntimeException("Python solver process interrupted: " + e.getMessage(), e);
         } catch (Exception e) {
             logger.error("Unexpected error during Python solver execution: " + e.getMessage());
-            e.printStackTrace();
+            //e.printStackTrace();
             throw new RuntimeException("Python solver failed: " + e.getMessage(), e);
         }
     }
     
     private void resolveSCC(List<VerificationModel> sccModels) {
-        mXparser.consolePrintln(false);  // Disable mXparser console output
+        //mXparser.consolePrintln(false);  // Disable mXparser console output
         logger.info("Starting SCC resolution for models: " + sccModels);
         
         // Store equations and their variables
@@ -524,26 +494,88 @@ public class NPMCVerification {
         logger.info("Performing PMC for " + model + " with property " + property);
         Model originalModel = getOriginalModel(model.getModelId());
         if (originalModel == null) {
-        	logger.error("Model not found: " + model.getModelId());
+            logger.error("Model not found: " + model.getModelId());
             throw new IllegalArgumentException("Model not found: " + model.getModelId());
         }
         //System.out.println(originalModel.getModelId() + model.getParameters());
-		try {
-			FileUtils.writeParametersToFile(originalModel.getVerificationFilePath(), originalModel.getHashExternalParameters());
-		} catch (NumberFormatException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
         try {
-			FileUtils.writeParametersToFile(originalModel.getVerificationFilePath(), model.getParameters());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+            FileUtils.writeParametersToFile(originalModel.getVerificationFilePath(), originalModel.getHashExternalParameters());
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            FileUtils.writeParametersToFile(originalModel.getVerificationFilePath(), model.getParameters());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Check if the model is a PRISM-games model
+        boolean isPrismGamesModel = false;
+        try {
+            String modelFilePath = originalModel.getVerificationFilePath();
+            if (modelFilePath != null && !modelFilePath.isEmpty()) {
+                // Read the content of the model file to check for game model keywords
+                String modelContent = FileUtils.readFileAsString(modelFilePath);
+                
+                // Check if model content contains game model identifiers anywhere in the file
+                // We don't limit to just the first line as the model type might be after comments
+                if (modelContent != null && 
+                    (modelContent.contains("smg") || 
+                     modelContent.contains("tsg") || 
+                     modelContent.contains("csg") || 
+                     modelContent.contains("tptg"))) {
+                    isPrismGamesModel = true;
+                    logger.info("Detected PRISM-games model type: file contains game model identifier");
+                }
+            }
+        } catch (IOException e) {
+            logger.warn("Could not read model file to check for game model type: " + e.getMessage());
+        }
+
+        // If it's a PRISM-games model, use PrismGamesProcessAPI
+        if (isPrismGamesModel) {
+            logger.info("Detected PRISM-games model type. Using PrismGamesProcessAPI...");
+            try {
+                SharedContext sharedContext = SharedContext.getInstance();
+                Project project = sharedContext.getProject();
+                String prismGamesPath = project.getPrismGamesInstall();
+                
+                // Check if prismGamesPath is valid
+                if (prismGamesPath == null || prismGamesPath.isEmpty()) {
+                    logger.warn("PRISM-games installation path is not configured. Using default location.");
+                    // Try to use a default location if not configured
+                    prismGamesPath = project.getPrismInstall().replace("prism", "prism-games");
+                }
+                
+                logger.info("Using PRISM-games executable path: " + prismGamesPath);
+                
+                // Always export strategy for PRISM-games models
+                String modelName = getModelName(originalModel.getVerificationFilePath());
+                String propertyName = getPropertyName(property);
+                
+                // Create a directory for strategies if it doesn't exist
+                String strategyDir = "strategies";
+                new File(strategyDir).mkdirs();
+                
+                String strategyFilePath = strategyDir + "/" + modelName + "_" + propertyName + ".dot";
+                logger.info("Exporting strategy to: " + strategyFilePath);
+                
+                // Use property index 1 if not specified in the property string
+                int propertyIndex = getPropertyIndex(property);
+                
+                return PrismGamesProcessAPI.runWithStrategyExport(originalModel, property, 
+                                                               prismGamesPath, propertyIndex, strategyFilePath);
+            } catch (IOException prismGamesException) {
+                logger.error("Error running PrismGamesProcessAPI: " + prismGamesException.getMessage());
+                // Fall back to other methods if PrismGames fails
+            }
+        }
 
         // First try with Storm
         try {
-        	StormAPI sAPI = new StormAPI();
+            StormAPI sAPI = new StormAPI();
             return sAPI.run(originalModel, property);
         } catch (Exception stormException) {
             // Extract just the error message without stack trace
@@ -551,10 +583,10 @@ public class NPMCVerification {
             //throw new Exception();
         }       
         
-        // Try with PrismProcessAPI as second fallback
-        logger.info("Trying fallback with PRISM...");
+        // Try with Prism as fallback
+        logger.info("Trying  fallback with PRISM...");
         try {
-        	SharedContext sharedContext = SharedContext.getInstance();
+            SharedContext sharedContext = SharedContext.getInstance();
             Project project = sharedContext.getProject();
             String prismPath = project.getPrismInstall();
             return PrismProcessAPI.run(originalModel, property, prismPath);
@@ -565,7 +597,6 @@ public class NPMCVerification {
                                       ": " + prismProcessException.getMessage());
         }
     }
-    
     private Model getOriginalModel(String modelId) {
         for (Model model : originalModels) {
             if (model.getModelId().equals(modelId)) {
@@ -573,5 +604,77 @@ public class NPMCVerification {
             }
         }
         return null;
+    }
+    /**
+     * Extracts a model name from its file path for use in strategy export filename
+     * 
+     * @param modelFilePath The full path to the model file
+     * @return A simplified model name (filename without extension)
+     */
+    private String getModelName(String modelFilePath) {
+        if (modelFilePath == null || modelFilePath.isEmpty()) {
+            return "model";
+        }
+        
+        // Extract just the filename
+        String fileName = new File(modelFilePath).getName();
+        
+        // Remove file extension
+        int lastDotIndex = fileName.lastIndexOf('.');
+        if (lastDotIndex > 0) {
+            return fileName.substring(0, lastDotIndex);
+        }
+        
+        return fileName;
+    }
+
+    /**
+     * Creates a simplified property name from a property string for use in strategy export filename
+     * 
+     * @param property The property string
+     * @return A simplified property name
+     */
+    private String getPropertyName(String property) {
+        if (property == null || property.isEmpty()) {
+            return "prop";
+        }
+        
+        // Create a safe filename by replacing special characters
+        String safeProperty = property.replaceAll("[^a-zA-Z0-9]", "_");
+        
+        // Limit length for filenames
+        if (safeProperty.length() > 20) {
+            safeProperty = safeProperty.substring(0, 20);
+        }
+        
+        return safeProperty;
+    }
+
+    /**
+     * Attempts to extract a property index from the property string
+     * 
+     * @param property The property string
+     * @return The extracted property index, or 1 if not found
+     */
+    private int getPropertyIndex(String property) {
+        // Default property index
+        int propertyIndex = 1;
+        
+        // Check if property contains a specific index pattern like "P4:" or similar
+        if (property != null && !property.isEmpty()) {
+            // Look for patterns like "P1:", "P2:", etc.
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("P(\\d+):");
+            java.util.regex.Matcher matcher = pattern.matcher(property);
+            
+            if (matcher.find()) {
+                try {
+                    propertyIndex = Integer.parseInt(matcher.group(1));
+                } catch (NumberFormatException e) {
+                    // Ignore parsing errors and use default
+                }
+            }
+        }
+        
+        return propertyIndex;
     }
 }
