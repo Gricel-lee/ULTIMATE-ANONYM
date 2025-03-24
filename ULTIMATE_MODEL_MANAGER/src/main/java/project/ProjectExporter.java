@@ -80,7 +80,7 @@ public class ProjectExporter {
             // the properties
             JSONArray propertiesArray = new JSONArray();
             for (Property p : model.getProperties()) {
-            	propertiesArray.put(p.getProperty());
+            	propertiesArray.put(formatDefinition(p.getProperty()));
             }
 
             modelObject.put("parameters", parametersObject);
@@ -103,6 +103,7 @@ public class ProjectExporter {
     	}
 	}
 	
+	// FIXME this need to account for the difference between states, labels and rewards as they are escaped differently
     /*
      * This method will extract labels in definitions and escape them correctly
      */
