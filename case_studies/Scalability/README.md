@@ -1,4 +1,4 @@
-Scalability experiments
+# Scalability experiments
 
 Project (details): verification time (on a MacBook Pro with M1 Pro chip and 32GB RAM)
 
